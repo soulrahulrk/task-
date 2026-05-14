@@ -6,9 +6,10 @@ import { ApiError, optionalString, requireString } from "@/lib/validation";
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -17,8 +18,8 @@ export async function GET(
     const isAdmin = session.user.role === "ADMIN";
     const project = await prisma.project.findFirst({
       where: isAdmin
-        ? { id: params.id }
-        : { id: params.id, members: { some: { userId: session.user.id } } },
+        ? { id }
+        : { id, members: { some: { userId: session.user.id } } },
       include: {
         _count: { select: { tasks: true, members: true } },
         creator: { select: { id: true, name: true, email: true } },
@@ -40,9 +41,10 @@ export async function GET(
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
@@ -65,7 +67,7 @@ export async function PATCH(
     }
 
     const updated = await prisma.project.update({
-      where: { id: params.id },
+      where: { id },
       data,
       include: {
         _count: { select: { tasks: true, members: true } },
@@ -87,15 +89,16 @@ export async function PATCH(
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    await prisma.project.delete({ where: { id: params.id } });
+    await prisma.project.delete({ where: { id } });
     return NextResponse.json({ ok: true });
   } catch (error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

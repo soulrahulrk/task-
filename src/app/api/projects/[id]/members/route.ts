@@ -6,9 +6,10 @@ import { ApiError, asStringId } from "@/lib/validation";
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -17,8 +18,8 @@ export async function GET(
     const isAdmin = session.user.role === "ADMIN";
     const project = await prisma.project.findFirst({
       where: isAdmin
-        ? { id: params.id }
-        : { id: params.id, members: { some: { userId: session.user.id } } },
+        ? { id }
+        : { id, members: { some: { userId: session.user.id } } },
       include: {
         members: {
           include: { user: { select: { id: true, name: true, email: true, role: true } } },
@@ -38,9 +39,10 @@ export async function GET(
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
@@ -50,7 +52,7 @@ export async function POST(
     const userId = asStringId(body.userId, "userId");
 
     const project = await prisma.project.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: { id: true, createdBy: true },
     });
 
@@ -59,7 +61,7 @@ export async function POST(
     }
 
     const existing = await prisma.projectMember.findUnique({
-      where: { projectId_userId: { projectId: params.id, userId } },
+      where: { projectId_userId: { projectId: id, userId } },
     });
 
     if (existing) {
@@ -72,7 +74,7 @@ export async function POST(
     }
 
     const member = await prisma.projectMember.create({
-      data: { projectId: params.id, userId },
+      data: { projectId: id, userId },
       include: { user: { select: { id: true, name: true, email: true, role: true } } },
     });
 
@@ -87,9 +89,10 @@ export async function POST(
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
@@ -101,7 +104,7 @@ export async function DELETE(
     const userId = asStringId(userIdParam, "userId");
 
     const project = await prisma.project.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: { id: true, createdBy: true },
     });
 
@@ -114,7 +117,7 @@ export async function DELETE(
     }
 
     await prisma.projectMember.delete({
-      where: { projectId_userId: { projectId: params.id, userId } },
+      where: { projectId_userId: { projectId: id, userId } },
     });
 
     return NextResponse.json({ ok: true });
