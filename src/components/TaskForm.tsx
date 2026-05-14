@@ -1,17 +1,36 @@
 "use client";
 
 import { useState } from "react";
-import { createTask } from "@/app/actions";
 
 export default function TaskForm({ projects, users }: { projects: any[], users: any[] }) {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(formData: FormData) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    
+    const title = formData.get("title") as string;
+    const description = formData.get("description") as string;
+    const projectId = formData.get("projectId") as string;
+    const assignedToUser = formData.get("assignedToUser") as string;
+    const dueDate = formData.get("dueDate") as string;
+
     setLoading(true);
     try {
-      await createTask(formData);
+      const res = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, description, projectId, assignedToUser, dueDate })
+      });
+      
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to create task");
+      }
+      
       setIsOpen(false);
+      window.location.reload();
     } catch (error) {
       alert(error instanceof Error ? error.message : "Failed to create task");
     } finally {
@@ -41,7 +60,7 @@ export default function TaskForm({ projects, users }: { projects: any[], users: 
               <button onClick={() => setIsOpen(false)} style={{ fontSize: '1.5rem', color: 'var(--text-secondary)' }}>&times;</button>
             </div>
 
-            <form action={handleSubmit}>
+            <form onSubmit={handleSubmit}>
               <div className="form-group">
                 <label htmlFor="title">Task Title</label>
                 <input type="text" id="title" name="title" className="form-control" required />

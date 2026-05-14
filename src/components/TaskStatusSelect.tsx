@@ -1,6 +1,5 @@
 "use client";
 
-import { updateTaskStatus } from "@/app/actions";
 import { useState, useTransition } from "react";
 
 export default function TaskStatusSelect({ taskId, initialStatus, isEditable }: { taskId: string, initialStatus: string, isEditable: boolean }) {
@@ -18,10 +17,22 @@ export default function TaskStatusSelect({ taskId, initialStatus, isEditable }: 
     <select
       defaultValue={initialStatus}
       disabled={isPending}
-      onChange={(e) => {
+      onChange={async (e) => {
         const newStatus = e.target.value;
-        startTransition(() => {
-          updateTaskStatus(taskId, newStatus);
+        startTransition(async () => {
+          try {
+            const res = await fetch(`/api/tasks/${taskId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ status: newStatus })
+            });
+            if (!res.ok) {
+              throw new Error("Failed to update status");
+            }
+            window.location.reload();
+          } catch (error) {
+            alert(error instanceof Error ? error.message : "Error updating status");
+          }
         });
       }}
       style={{
