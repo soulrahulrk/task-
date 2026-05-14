@@ -34,6 +34,14 @@ export default async function DashboardPage() {
     }
   });
 
+  const overdueCount = await prisma.task.count({
+    where: {
+      dueDate: { lt: new Date() },
+      status: { not: "COMPLETED" },
+      ...(isAdmin ? {} : { assignedToUser: session.user.id })
+    }
+  });
+
   const recentTasks = await prisma.task.findMany({
     where: isAdmin ? {} : { assignedToUser: session.user.id },
     orderBy: { createdAt: 'desc' },
@@ -63,6 +71,10 @@ export default async function DashboardPage() {
         <div className="stat-card">
           <div className="stat-title">Pending</div>
           <div className="stat-value" style={{ color: 'var(--warning-color)' }}>{pendingCount}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-title">Overdue</div>
+          <div className="stat-value" style={{ color: 'var(--danger-color)' }}>{overdueCount}</div>
         </div>
       </div>
 

@@ -12,7 +12,12 @@ export default async function TasksPage() {
   const isAdmin = session.user.role === "ADMIN";
 
   const tasks = await prisma.task.findMany({
-    where: isAdmin ? {} : { assignedToUser: session.user.id },
+    where: isAdmin
+      ? {}
+      : {
+          assignedToUser: session.user.id,
+          project: { members: { some: { userId: session.user.id } } },
+        },
     include: {
       project: { select: { name: true } },
       assignee: { select: { name: true, email: true } }
@@ -20,8 +25,15 @@ export default async function TasksPage() {
     orderBy: { createdAt: 'desc' }
   });
 
-  const projects = isAdmin ? await prisma.project.findMany({ select: { id: true, name: true } }) : [];
-  const users = isAdmin ? await prisma.user.findMany({ select: { id: true, name: true, email: true } }) : [];
+  const projects = isAdmin
+    ? await prisma.project.findMany({
+        select: { id: true, name: true, members: { select: { userId: true } } },
+        orderBy: { createdAt: 'desc' }
+      })
+    : [];
+  const users = isAdmin
+    ? await prisma.user.findMany({ select: { id: true, name: true, email: true }, orderBy: { createdAt: 'desc' } })
+    : [];
 
   return (
     <div>

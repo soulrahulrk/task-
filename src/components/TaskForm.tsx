@@ -1,10 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
-export default function TaskForm({ projects, users }: { projects: any[], users: any[] }) {
+type ProjectOption = {
+  id: string;
+  name: string;
+  members: { userId: string }[];
+};
+
+type UserOption = {
+  id: string;
+  name?: string | null;
+  email: string;
+};
+
+export default function TaskForm({
+  projects,
+  users,
+}: {
+  projects: ProjectOption[];
+  users: UserOption[];
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState(
+    projects[0]?.id || ""
+  );
+
+  const availableUsers = useMemo(() => {
+    const selected = projects.find((project) => project.id === selectedProjectId);
+    const memberIds = new Set(selected?.members.map((member) => member.userId) || []);
+    return users.filter((user) => memberIds.has(user.id));
+  }, [projects, selectedProjectId, users]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -72,7 +99,14 @@ export default function TaskForm({ projects, users }: { projects: any[], users: 
               
               <div className="form-group">
                 <label htmlFor="projectId">Project</label>
-                <select id="projectId" name="projectId" className="form-control" required>
+                <select
+                  id="projectId"
+                  name="projectId"
+                  className="form-control"
+                  required
+                  value={selectedProjectId}
+                  onChange={(e) => setSelectedProjectId(e.target.value)}
+                >
                   {projects.map(p => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
@@ -81,12 +115,22 @@ export default function TaskForm({ projects, users }: { projects: any[], users: 
 
               <div className="form-group">
                 <label htmlFor="assignedToUser">Assignee (Optional)</label>
-                <select id="assignedToUser" name="assignedToUser" className="form-control">
+                <select
+                  id="assignedToUser"
+                  name="assignedToUser"
+                  className="form-control"
+                  disabled={availableUsers.length === 0}
+                >
                   <option value="">Unassigned</option>
-                  {users.map(u => (
+                  {availableUsers.map(u => (
                     <option key={u.id} value={u.id}>{u.name || u.email}</option>
                   ))}
                 </select>
+                {availableUsers.length === 0 && (
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+                    Add members to this project before assigning tasks.
+                  </div>
+                )}
               </div>
 
               <div className="form-group">

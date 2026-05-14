@@ -13,7 +13,7 @@ export default async function UsersPage() {
   const users = await prisma.user.findMany({
     include: {
       _count: {
-        select: { tasks: true, projects: true }
+        select: { tasks: true, createdProjects: true, projectMemberships: true }
       }
     },
     orderBy: { createdAt: 'desc' }
@@ -34,6 +34,7 @@ export default async function UsersPage() {
                 <th>Email</th>
                 <th>Role</th>
                 <th>Projects Created</th>
+                <th>Member Of</th>
                 <th>Tasks Assigned</th>
               </tr>
             </thead>
@@ -47,7 +48,8 @@ export default async function UsersPage() {
                       {user.role}
                     </span>
                   </td>
-                  <td style={{ color: 'var(--text-secondary)' }}>{user._count.projects}</td>
+                  <td style={{ color: 'var(--text-secondary)' }}>{user._count.createdProjects}</td>
+                  <td style={{ color: 'var(--text-secondary)' }}>{user._count.projectMemberships}</td>
                   <td style={{ color: 'var(--text-secondary)' }}>{user._count.tasks}</td>
                 </tr>
               ))}

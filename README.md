@@ -8,6 +8,7 @@ A full-stack project management and task tracking application built with Next.js
   - `ADMIN`: Can create projects, create tasks, assign tasks, update any task, and view users.
   - `MEMBER`: Can view projects, view assigned tasks, and update the status of their assigned tasks.
 - **Projects Management**: Admins can create and manage projects.
+- **Team Management**: Admins can add/remove project members; members only see projects they belong to.
 - **Tasks Management**: Admins can create tasks, assign them to members, and set due dates. Members can track and update their task statuses (Pending, In Progress, Completed).
 - **Dashboard**: Overview of task statistics and recent tasks.
 
@@ -17,6 +18,34 @@ A full-stack project management and task tracking application built with Next.js
 - **ORM**: Prisma
 - **Auth**: NextAuth.js
 - **Styling**: Vanilla CSS (Vibrant & Modern UI)
+
+## Data Model & Relationships
+- `User` creates many `Project` records.
+- `ProjectMember` is a join table between `Project` and `User` for team membership.
+- `Task` belongs to a `Project` and can be assigned to a `User`.
+
+## REST API Coverage
+All routes are protected by NextAuth session checks and role-based access control.
+
+### Projects
+- `GET /api/projects` (Admin: all projects, Member: only their projects)
+- `POST /api/projects` (Admin only)
+- `GET /api/projects/:id` (Admin or project member)
+- `PATCH /api/projects/:id` (Admin only)
+- `DELETE /api/projects/:id` (Admin only)
+- `GET /api/projects/:id/members` (Admin or project member)
+- `POST /api/projects/:id/members` (Admin only)
+- `DELETE /api/projects/:id/members?userId=...` (Admin only)
+
+### Tasks
+- `GET /api/tasks` (Admin: all tasks, Member: assigned tasks)
+- `POST /api/tasks` (Admin only)
+- `GET /api/tasks/:id` (Admin or assigned member)
+- `PATCH /api/tasks/:id` (Admin: full update, Member: status only)
+- `DELETE /api/tasks/:id` (Admin only)
+
+### Users
+- `GET /api/users` (Admin only)
 
 ## Getting Started (Local Development)
 
@@ -86,5 +115,6 @@ Railway provides PostgreSQL. You need to update the Prisma schema to use Postgre
 Once deployed, use tools like Loom or OBS to record a 2-5 minute video showcasing:
 1. Registering as an Admin and a Member.
 2. Admin creating a project and assigning tasks.
-3. Member logging in and changing task status.
-4. The dashboard statistics updating in real-time.
+3. Admin adding/removing team members from a project.
+4. Member logging in and changing task status.
+5. The dashboard statistics updating in real-time.

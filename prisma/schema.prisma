@@ -16,8 +16,9 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
-  projects  Project[]
-  tasks     Task[]
+  createdProjects    Project[]       @relation("CreatedProjects")
+  projectMemberships ProjectMember[]
+  tasks              Task[]
 }
 
 model Project {
@@ -25,11 +26,25 @@ model Project {
   name        String
   description String?
   createdBy   String
-  creator     User     @relation(fields: [createdBy], references: [id])
+  creator     User     @relation("CreatedProjects", fields: [createdBy], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   tasks       Task[]
+  members     ProjectMember[]
+}
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([userId])
 }
 
 model Task {

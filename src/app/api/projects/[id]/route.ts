@@ -4,7 +4,10 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ApiError, optionalString, requireString } from "@/lib/validation";
 
-export async function GET() {
+export async function GET(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
@@ -12,14 +15,10 @@ export async function GET() {
     }
 
     const isAdmin = session.user.role === "ADMIN";
-    const projects = await prisma.project.findMany({
+    const project = await prisma.project.findFirst({
       where: isAdmin
-        ? {}
-        : {
-            members: {
-              some: { userId: session.user.id },
-            },
-          },
+        ? { id: params.id }
+        : { id: params.id, members: { some: { userId: session.user.id } } },
       include: {
         _count: { select: { tasks: true, members: true } },
         creator: { select: { id: true, name: true, email: true } },
@@ -27,16 +26,22 @@ export async function GET() {
           include: { user: { select: { id: true, name: true, email: true, role: true } } },
         },
       },
-      orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json(projects);
+    if (!project) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(project);
   } catch (error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
-export async function POST(req: Request) {
+export async function PATCH(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== "ADMIN") {
@@ -44,18 +49,24 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const name = requireString(body.name, "Project name");
-    const description = optionalString(body.description);
+    const data: { name?: string; description?: string | null } = {};
 
-    const project = await prisma.project.create({
-      data: {
-        name,
-        description,
-        createdBy: session.user.id,
-        members: {
-          create: { userId: session.user.id },
-        },
-      },
+    if (body.name !== undefined) {
+      data.name = requireString(body.name, "Project name");
+    }
+
+    if (body.description !== undefined) {
+      const description = optionalString(body.description);
+      data.description = description ?? null;
+    }
+
+    if (Object.keys(data).length === 0) {
+      throw new ApiError("No fields to update");
+    }
+
+    const updated = await prisma.project.update({
+      where: { id: params.id },
+      data,
       include: {
         _count: { select: { tasks: true, members: true } },
         creator: { select: { id: true, name: true, email: true } },
@@ -65,11 +76,28 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json(project, { status: 201 });
+    return NextResponse.json(updated);
   } catch (error) {
     if (error instanceof ApiError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    await prisma.project.delete({ where: { id: params.id } });
+    return NextResponse.json({ ok: true });
+  } catch (error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
