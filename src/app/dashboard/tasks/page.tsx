@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import TaskForm from "@/components/TaskForm";
 import TaskStatusSelect from "@/components/TaskStatusSelect";
+import TaskActions from "@/components/TaskActions";
 
 export default async function TasksPage() {
   const session = await getServerSession(authOptions);
@@ -52,17 +53,19 @@ export default async function TasksPage() {
                 <th>Assignee</th>
                 <th>Status</th>
                 <th>Due Date</th>
+                {isAdmin && <th>Actions</th>}
               </tr>
             </thead>
             <tbody>
               {tasks.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>No tasks found</td>
+                  <td colSpan={isAdmin ? 6 : 5} style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>No tasks found</td>
                 </tr>
               ) : (
                 tasks.map(task => {
                   const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== "COMPLETED";
                   const isEditable = isAdmin || task.assignedToUser === session.user.id;
+                  const dueDateValue = task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 10) : "";
 
                   return (
                     <tr key={task.id}>
@@ -81,6 +84,20 @@ export default async function TasksPage() {
                         {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'N/A'}
                         {isOverdue && <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem' }}>(Overdue)</span>}
                       </td>
+                      {isAdmin && (
+                        <td>
+                          <TaskActions
+                            taskId={task.id}
+                            projectId={task.projectId}
+                            initialTitle={task.title}
+                            initialDescription={task.description}
+                            initialDueDate={dueDateValue}
+                            initialAssigneeId={task.assignedToUser}
+                            projects={projects}
+                            users={users}
+                          />
+                        </td>
+                      )}
                     </tr>
                   )
                 })

@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import ProjectForm from "@/components/ProjectForm";
 import ProjectMembersManager from "@/components/ProjectMembersManager";
+import ProjectActions from "@/components/ProjectActions";
 
 export default async function ProjectsPage() {
   const session = await getServerSession(authOptions);
@@ -51,12 +52,19 @@ export default async function ProjectsPage() {
                 {project.name}
               </h3>
               {isAdmin && (
-                <ProjectMembersManager
-                  projectId={project.id}
-                  creatorId={project.creator.id}
-                  allUsers={users}
-                  initialMembers={project.members}
-                />
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <ProjectMembersManager
+                    projectId={project.id}
+                    creatorId={project.creator.id}
+                    allUsers={users}
+                    initialMembers={project.members}
+                  />
+                  <ProjectActions
+                    projectId={project.id}
+                    initialName={project.name}
+                    initialDescription={project.description}
+                  />
+                </div>
               )}
             </div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem', flex: 1 }}>

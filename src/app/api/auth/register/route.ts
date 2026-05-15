@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import { ApiError, optionalString, requireString, USER_ROLES } from "@/lib/validation";
+import { ApiError, optionalString, requireString } from "@/lib/validation";
 
 export async function POST(req: Request) {
   try {
@@ -9,7 +9,7 @@ export async function POST(req: Request) {
     const name = optionalString(body.name);
     const email = requireString(body.email, "Email");
     const password = requireString(body.password, "Password");
-    const role = USER_ROLES.includes(body.role) ? body.role : "MEMBER";
+    const role = "MEMBER";
 
     const existingUser = await prisma.user.findUnique({
       where: { email },
